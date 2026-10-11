@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dbcb04406407d63449230963b76c6add, type: 3}
+  m_Name: DemoAudioSystemSettings
+  m_EditorClassIdentifier: 
+  autoInitialize: 0
+  dontDestroyOnLoad: 1
+  mixer: {fileID: 24100000, guid: 122deb0e3a58d5f4aa834959d1af3d2e, type: 2}
+  musicGroup: {fileID: 243100001, guid: 122deb0e3a58d5f4aa834959d1af3d2e, type: 2}
+  sfxGroup: {fileID: 243100002, guid: 122deb0e3a58d5f4aa834959d1af3d2e, type: 2}
+  volumeChannels:
+  - name: Master
+    exposedParameter: MasterVolume
+    defaultVolume: 1
+  - name: Music
+    exposedParameter: MusicVolume
+    defaultVolume: 1
+  - name: SFX
+    exposedParameter: SFXVolume
+    defaultVolume: 1
+  - name: UI
+    exposedParameter: UIVolume
+    defaultVolume: 1
+  saveVolumes: 1
+  playerPrefsKeyPrefix: MLin.Audio.Demo.Volume.
+  initialVoices: 16
+  maxVoices: 64
+  defaultMusicFade: 1
+  defaultPauseFade: 0.3
+  voiceStealFade: 0.05
+  duckAttack: 0.1
+  duckRelease: 0.5
+  stopSoundsOnSceneChange: 0
+  sceneChangeStopFade: 0.1

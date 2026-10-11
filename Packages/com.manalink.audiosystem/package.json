@@ -1,0 +1,26 @@
+{
+  "name": "com.manalink.audiosystem",
+  "version": "0.1.0",
+  "displayName": "MLin Audio System",
+  "description": "Reusable audio system: data-driven sound definitions, pooled voices, music crossfade, pause with fade, ducking, mixer-based volume channels with pluggable persistence.",
+  "unity": "2022.3",
+  "author": {
+    "name": "Jaksa Brzovic"
+  },
+  "keywords": [
+    "audio",
+    "sound",
+    "music",
+    "sfx"
+  ],
+  "dependencies": {
+    "com.unity.modules.audio": "1.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "Demo",
+      "description": "Demo scene with procedurally generated sounds, an audio mixer with exposed volume parameters and an on-screen test panel.",
+      "path": "Samples~/Demo"
+    }
+  ]
+}
