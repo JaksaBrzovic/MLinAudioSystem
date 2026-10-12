@@ -12,6 +12,7 @@ Reusable audio system for Unity 2022.3+.
 - **Ducking**: a sound can lower the music while it plays, and bus rules duck whole mixer groups (dialogue over music and ambience).
 - **Snapshots** with prioritized requests for mix states (menu, underwater, low health).
 - **Intro + loop** clips joined sample-accurately, and **beat / bar synced** music switches.
+- **Music layers**: stems started sample-aligned with `PlayLayers`, mixed by game state with `handle.SetVolume(volume, fade)`.
 - **Mute when unfocused**, switchable from an options menu.
 - **Volume channels** on exposed AudioMixer parameters (linear 0..1 in, dB out), saved through a pluggable `IVolumeStorage` (PlayerPrefs by default, swap in console save data etc.).
 - Works with **Domain Reload disabled**, unscaled time everywhere (fades work with `Time.timeScale = 0`).
@@ -77,6 +78,7 @@ public class Door : MonoBehaviour
 | 2D sound | `AudioSystem.Play(sound, fadeIn = 0)` |
 | Sound at a position | `AudioSystem.PlayAt(sound, position)` |
 | Sound following a transform (auto-stops when it is destroyed) | `AudioSystem.PlayAttached(sound, transform)` |
+| Music layers (stems) | `SoundHandle[] layers = AudioSystem.PlayLayers(new[] { calm, ride, battle })`, `layers[2].SetVolume(1f, fade: 0.5f)` |
 | Stop one / all of a kind / everything | `handle.Stop(fade)`, `AudioSystem.StopAll(sound, fade)`, `AudioSystem.StopAllSounds(fade, includeMusic)` |
 | Music | `AudioSystem.PlayMusic(track, crossfade = default, restartIfPlaying = false, sync = MusicSync.Immediate)`, `AudioSystem.StopMusic(fade)`, `AudioSystem.CurrentMusic` |
 | Pause menu | `AudioSystem.Pause(fade)`, `AudioSystem.Resume(fade)`, `AudioSystem.IsPaused` |

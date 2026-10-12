@@ -6,7 +6,7 @@ namespace MLin.Audio
     /// <summary>What a voice should play and how it starts.</summary>
     internal readonly struct VoiceStart
     {
-        public VoiceStart(AudioClip introClip, AudioClip mainClip, int startSample, float fadeIn, FadeCurve curve, float startDelay)
+        public VoiceStart(AudioClip introClip, AudioClip mainClip, int startSample, float fadeIn, FadeCurve curve, float startDelay, double scheduledDspTime = 0d)
         {
             IntroClip = introClip;
             MainClip = mainClip;
@@ -14,6 +14,7 @@ namespace MLin.Audio
             FadeIn = fadeIn;
             Curve = curve;
             StartDelay = startDelay;
+            ScheduledDspTime = scheduledDspTime;
         }
 
         /// <summary>Played once before <see cref="MainClip"/>; null for no intro (or when resuming past it).</summary>
@@ -25,6 +26,11 @@ namespace MLin.Audio
         public FadeCurve Curve { get; }
         /// <summary>Seconds to wait before the sound starts (music sync). The fade starts with the sound.</summary>
         public float StartDelay { get; }
+        /// <summary>
+        /// Exact DSP time to start at, shared by voices that must stay sample-aligned (music layers). 0 = derive the
+        /// start from <see cref="StartDelay"/>.
+        /// </summary>
+        public double ScheduledDspTime { get; }
     }
 
     /// <summary>
@@ -46,6 +52,8 @@ namespace MLin.Audio
 
         private float baseVolume;
         private float userVolume;
+        private float userVolumeTarget;
+        private float userVolumeSpeed;
         private float fade;
         private float fadeTarget;
         private float fadeSpeed;
@@ -54,6 +62,7 @@ namespace MLin.Audio
         private float stopDelay;
         private float pendingFadeOut;
         private float startDelay;
+        private double scheduledDspTime;
         private int startSample;
         private bool hasIntro;
         private bool isInIntro;
@@ -97,6 +106,8 @@ namespace MLin.Audio
         public AudioClip Clip => ActiveSource.clip;
         public int PlaybackSample => ActiveSource.timeSamples;
         public float Pitch => firstSource.pitch;
+        /// <summary>Volume last written to the AudioSource (all gains applied).</summary>
+        public float AppliedVolume => firstSource.volume;
 
         private AudioSource ActiveSource => hasIntro && !isInIntro ? mainSource : firstSource;
 
@@ -115,6 +126,8 @@ namespace MLin.Audio
 
             baseVolume = definition.PickVolume();
             userVolume = 1f;
+            userVolumeTarget = 1f;
+            userVolumeSpeed = 0f;
             isStopping = false;
             stopDelay = 0f;
             fadeCurve = start.Curve;
@@ -141,6 +154,7 @@ namespace MLin.Audio
             duration = definition.Loop ? float.PositiveInfinity : introRemaining + mainLength;
             elapsed = 0f;
             startDelay = Mathf.Max(0f, start.StartDelay);
+            scheduledDspTime = start.ScheduledDspTime;
 
             followTarget = follow;
             isFollowing = follow != null;
@@ -172,9 +186,18 @@ namespace MLin.Audio
             }
         }
 
-        public void SetUserVolume(float volume)
+        /// <param name="fade">Seconds to move from the current level to <paramref name="volume"/>; 0 = immediately.</param>
+        public void SetUserVolume(float volume, float fade = 0f)
         {
-            userVolume = Mathf.Clamp01(volume);
+            userVolumeTarget = Mathf.Clamp01(volume);
+            if (fade <= 0f)
+            {
+                userVolume = userVolumeTarget;
+                userVolumeSpeed = 0f;
+                return;
+            }
+
+            userVolumeSpeed = Mathf.Abs(userVolumeTarget - userVolume) / fade;
         }
 
         /// <summary>Fades from the current level (never jumps) and releases the voice when silent.</summary>
@@ -261,6 +284,11 @@ namespace MLin.Audio
                 fade = Mathf.MoveTowards(fade, fadeTarget, fadeSpeed * deltaTime);
             }
 
+            if (userVolume != userVolumeTarget)
+            {
+                userVolume = Mathf.MoveTowards(userVolume, userVolumeTarget, userVolumeSpeed * deltaTime);
+            }
+
             if (isStopping && stopDelay <= 0f && fade <= 0f)
             {
                 Release();
@@ -321,6 +349,7 @@ namespace MLin.Audio
             isStopping = false;
             stopDelay = 0f;
             startDelay = 0f;
+            scheduledDspTime = 0d;
             hasIntro = false;
             isInIntro = false;
             isScheduled = false;
@@ -361,7 +390,9 @@ namespace MLin.Audio
                 return;
             }
 
-            double startTime = AudioSettings.dspTime + System.Math.Max(SCHEDULE_LEAD, startDelay);
+            // a shared absolute start keeps layered voices sample-aligned; after a pause it has passed and the delay is used
+            double now = AudioSettings.dspTime;
+            double startTime = scheduledDspTime > now ? scheduledDspTime : now + System.Math.Max(SCHEDULE_LEAD, startDelay);
             firstSource.PlayScheduled(startTime);
             if (isInIntro)
             {

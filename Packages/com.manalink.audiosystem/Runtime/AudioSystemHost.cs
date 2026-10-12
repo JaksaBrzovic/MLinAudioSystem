@@ -17,6 +17,8 @@ namespace MLin.Audio
     {
         // a synced music switch closer than this to the next beat waits for the following one
         private const float MIN_SYNC_LEAD = 0.05f;
+        // enough lead for every layer to be scheduled before the shared start, even with a large audio buffer
+        private const double LAYER_SCHEDULE_LEAD = 0.1;
         private const string UNITY_DEFAULT_SNAPSHOT = "Snapshot";
 
         [SerializeField] private AudioSystemSettings settings;
@@ -165,8 +167,9 @@ namespace MLin.Audio
         /// <param name="resumeClip">Clip to continue instead of starting the definition from the beginning (music resume).</param>
         /// <param name="resumeSample">Sample of <paramref name="resumeClip"/> to continue from.</param>
         /// <param name="startDelay">Seconds until the sound starts (music sync).</param>
+        /// <param name="scheduledDspTime">Exact DSP start shared with other voices (music layers); 0 = from the delay.</param>
         internal SoundHandle Play(SoundDefinition definition, bool isMusic, float fadeIn, Vector3? position, Transform follow,
-            AudioClip resumeClip = null, int resumeSample = 0, float startDelay = 0f)
+            AudioClip resumeClip = null, int resumeSample = 0, float startDelay = 0f, double scheduledDspTime = 0d)
         {
             if (definition == null)
             {
@@ -185,7 +188,7 @@ namespace MLin.Audio
                 return SoundHandle.Invalid;
             }
 
-            VoiceStart start = CreateVoiceStart(definition, isMusic, fadeIn, resumeClip, resumeSample, startDelay);
+            VoiceStart start = CreateVoiceStart(definition, isMusic, fadeIn, resumeClip, resumeSample, startDelay, scheduledDspTime);
             if (start.MainClip == null)
             {
                 WarnOnce($"SoundDefinition '{definition.name}' has no clips assigned.");
@@ -221,6 +224,13 @@ namespace MLin.Audio
             return GetVoice(handle) != null;
         }
 
+        /// <returns>Volume currently written to the voice's AudioSource, or -1 for a stale handle.</returns>
+        internal float GetAppliedVolume(SoundHandle handle)
+        {
+            AudioVoice voice = GetVoice(handle);
+            return voice != null ? voice.AppliedVolume : -1f;
+        }
+
         /// <returns>Sample position of the clip that is heard, or -1 for a stale handle.</returns>
         internal int GetPlaybackSample(SoundHandle handle)
         {
@@ -228,7 +238,7 @@ namespace MLin.Audio
             return voice != null ? voice.PlaybackSample : -1;
         }
 
-        internal void SetVolume(SoundHandle handle, float volume)
+        internal void SetVolume(SoundHandle handle, float volume, float fade)
         {
             AudioVoice voice = GetVoice(handle);
             if (voice == null)
@@ -236,7 +246,7 @@ namespace MLin.Audio
                 return;
             }
 
-            voice.SetUserVolume(volume);
+            voice.SetUserVolume(volume, fade);
             voice.ApplyVolume(pauseGain, GetDuckGain(voice));
         }
 
@@ -270,6 +280,20 @@ namespace MLin.Audio
         #endregion
 
         #region MUSIC
+        /// <summary>Starts every layer on one shared DSP time so the layers stay sample-aligned. Layers play as music.</summary>
+        internal SoundHandle[] PlayLayers(IReadOnlyList<SoundDefinition> layers, float fadeIn)
+        {
+            SoundHandle[] handles = new SoundHandle[layers.Count];
+            double now = AudioSettings.dspTime;
+            double startTime = now + LAYER_SCHEDULE_LEAD;
+            for (int i = 0; i < layers.Count; i++)
+            {
+                handles[i] = Play(layers[i], true, fadeIn, null, null, null, 0, (float)LAYER_SCHEDULE_LEAD, startTime);
+            }
+
+            return handles;
+        }
+
         internal SoundHandle PlayMusic(SoundDefinition music, float crossfade, bool restartIfPlaying, MusicSync sync)
         {
             if (music == null)
@@ -780,19 +804,20 @@ namespace MLin.Audio
             return saved.Clip != null && (music.HasClip(saved.Clip) || saved.Clip == music.IntroClip);
         }
 
-        private VoiceStart CreateVoiceStart(SoundDefinition definition, bool isMusic, float fadeIn, AudioClip resumeClip, int resumeSample, float startDelay)
+        private VoiceStart CreateVoiceStart(SoundDefinition definition, bool isMusic, float fadeIn, AudioClip resumeClip, int resumeSample,
+            float startDelay, double scheduledDspTime)
         {
             FadeCurve curve = isMusic ? settings.MusicFadeCurve : FadeCurve.Linear;
 
             if (resumeClip == null)
             {
-                return new VoiceStart(definition.IntroClip, definition.PickClip(), 0, fadeIn, curve, startDelay);
+                return new VoiceStart(definition.IntroClip, definition.PickClip(), 0, fadeIn, curve, startDelay, scheduledDspTime);
             }
 
             // resuming inside the intro keeps the intro; resuming inside the main clip skips it
             return resumeClip == definition.IntroClip
-                ? new VoiceStart(resumeClip, definition.PickClip(), resumeSample, fadeIn, curve, startDelay)
-                : new VoiceStart(null, resumeClip, resumeSample, fadeIn, curve, startDelay);
+                ? new VoiceStart(resumeClip, definition.PickClip(), resumeSample, fadeIn, curve, startDelay, scheduledDspTime)
+                : new VoiceStart(null, resumeClip, resumeSample, fadeIn, curve, startDelay, scheduledDspTime);
         }
 
         private float GetSyncDelay(AudioVoice current, MusicSync sync)

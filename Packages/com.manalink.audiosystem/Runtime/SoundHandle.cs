@@ -41,9 +41,10 @@ namespace MLin.Audio
         }
 
         /// <summary>Multiplier on top of the definition volume, 0..1.</summary>
-        public void SetVolume(float volume)
+        /// <param name="fade">Seconds (unscaled) to move from the current level; 0 = immediately.</param>
+        public void SetVolume(float volume, float fade = 0f)
         {
-            AudioSystem.SetVolume(this, volume);
+            AudioSystem.SetVolume(this, volume, fade);
         }
 
         public bool Equals(SoundHandle other)

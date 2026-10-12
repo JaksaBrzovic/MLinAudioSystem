@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -148,16 +149,35 @@ namespace MLin.Audio
         }
 
         /// <summary>Per-sound volume multiplier (0..1) on top of the definition volume.</summary>
-        public static void SetVolume(SoundHandle handle, float volume)
+        /// <param name="fade">Seconds (unscaled) to move from the current level; 0 = immediately.</param>
+        public static void SetVolume(SoundHandle handle, float volume, float fade = 0f)
         {
             if (host != null)
             {
-                host.SetVolume(handle, volume);
+                host.SetVolume(handle, volume, fade);
             }
         }
         #endregion
 
         #region MUSIC
+        /// <summary>
+        /// Starts the layers (stems) of one piece on the same DSP time so they stay sample-aligned, e.g. ambient, ride and
+        /// battle layers whose mix follows the game state. Mix them with <see cref="SoundHandle.SetVolume"/> and a fade.
+        /// Layers play as music: never stolen, lowered by Duck Music, routed to the music group by default. Playback begins
+        /// about 0.1 s after the call, so volumes set right after it apply from the first sample.
+        /// </summary>
+        /// <returns>One handle per layer, in the same order; invalid where a layer could not start.</returns>
+        public static SoundHandle[] PlayLayers(IReadOnlyList<SoundDefinition> layers, float fadeIn = 0f)
+        {
+            AudioSystemHost activeHost = GetOrCreateHost();
+            if (activeHost == null || layers == null)
+            {
+                return System.Array.Empty<SoundHandle>();
+            }
+
+            return activeHost.PlayLayers(layers, fadeIn);
+        }
+
         /// <summary>
         /// Crossfades to a new music track. Requesting the track that is already playing does nothing
         /// unless <paramref name="restartIfPlaying"/> is true.

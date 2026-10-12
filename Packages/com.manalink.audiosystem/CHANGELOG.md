@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.0] - 2026-10-12
 
 ### Added
 - Equal-power music crossfades: `AudioSystemSettings.MusicFadeCurve` (default `EqualPower`, `Linear` keeps the old behavior), `AudioMath.FadeGain`.
@@ -10,6 +10,7 @@
 - Mixer snapshots with prioritized requests: `AudioSystem.RequestSnapshot` / `ReleaseSnapshot`, `SnapshotHandle`, default snapshot in the settings.
 - `SoundDefinition.IntroClip`: plays once, then the main clip follows sample-accurately (also across a pause).
 - Beat / bar synced music switches: `SoundDefinition.Bpm` + `BeatsPerBar`, `PlayMusic(..., sync: MusicSync.NextBeat / NextBar)`.
+- Vertical music layering: `AudioSystem.PlayLayers` starts stems on one shared DSP time; `SoundHandle.SetVolume(volume, fade)` mixes them.
 - Mute when the application loses focus (`AudioSystemSettings.MuteWhenUnfocused`, `AudioSystem.MuteWhenUnfocused`).
 - Inspector validation for ducking rules, snapshots, the mixer update mode and streaming intro clips.
 - Read-only diagnostics on `AudioSystemHost`: `MusicDuckGain`, `FocusGain`, `GetGroupDuckGain(group)`, `GetPlayingClip(handle)`, `GetPlaybackTime(handle)`.

@@ -1,6 +1,6 @@
 {
   "name": "com.manalink.audiosystem",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "displayName": "MLin Audio System",
   "description": "Reusable audio system: data-driven sound definitions, pooled voices, music crossfade, pause with fade, ducking, mixer-based volume channels with pluggable persistence.",
   "unity": "2022.3",

@@ -387,6 +387,57 @@ namespace MLin.Audio.Tests
             Assert.AreEqual(1f, AudioListener.volume);
         }
 
+        [UnityTest]
+        public IEnumerator PlayLayers_StartSampleAligned()
+        {
+            Initialize();
+            SoundDefinition[] layers = { CreateSound(5f, loop: true), CreateSound(5f, loop: true), CreateSound(5f, loop: true) };
+
+            SoundHandle[] handles = AudioSystem.PlayLayers(layers);
+            yield return new WaitForSecondsRealtime(0.5f);
+
+            Assert.AreEqual(3, handles.Length);
+            int first = AudioSystem.Host.GetPlaybackSample(handles[0]);
+            Assert.Greater(first, 0, "layers are playing");
+            foreach (SoundHandle handle in handles)
+            {
+                Assert.IsTrue(handle.IsPlaying);
+                Assert.AreEqual(first, AudioSystem.Host.GetPlaybackSample(handle), 64, "layers stay on the same sample");
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator PlayLayers_AreMusicAndNeverStolen()
+        {
+            settings.InitialVoices = 2;
+            settings.MaxVoices = 2;
+            Initialize();
+            SoundHandle[] layers = AudioSystem.PlayLayers(new[] { CreateSound(5f, loop: true), CreateSound(5f, loop: true) });
+
+            SoundHandle effect = AudioSystem.Play(CreateSound(5f));
+            yield return null;
+
+            Assert.IsFalse(effect.IsValid, "a full pool of layers rejects ordinary sounds");
+            Assert.IsTrue(layers[0].IsPlaying && layers[1].IsPlaying);
+        }
+
+        [UnityTest]
+        public IEnumerator SetVolume_WithFade_MovesGraduallyToTarget()
+        {
+            Initialize();
+            SoundHandle handle = AudioSystem.Play(CreateSound(5f, loop: true));
+            yield return null;
+            Assert.AreEqual(1f, AudioSystem.Host.GetAppliedVolume(handle), 0.001f);
+
+            handle.SetVolume(0f, 0.4f);
+            yield return new WaitForSecondsRealtime(0.2f);
+            Assert.That(AudioSystem.Host.GetAppliedVolume(handle), Is.InRange(0.15f, 0.85f), "halfway through the fade");
+
+            yield return new WaitForSecondsRealtime(0.4f);
+            Assert.AreEqual(0f, AudioSystem.Host.GetAppliedVolume(handle), 0.001f);
+            Assert.IsTrue(handle.IsPlaying, "a volume fade does not stop the sound");
+        }
+
         [Test]
         public void StopMusic_ClearsCurrentMusic()
         {
