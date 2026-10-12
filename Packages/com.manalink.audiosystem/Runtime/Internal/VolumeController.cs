@@ -16,32 +16,36 @@ namespace MLin.Audio
         private readonly HashSet<string> loggedWarnings = new HashSet<string>();
         private IVolumeStorage storage;
 
-        public IVolumeStorage Storage => storage;
-
         public VolumeController(AudioSystemSettings settings, IVolumeStorage storage)
         {
             this.settings = settings;
 
             foreach (VolumeChannel channel in settings.VolumeChannels)
             {
-                if (channel == null || string.IsNullOrEmpty(channel.name))
-                    continue;
-
-                if (channels.ContainsKey(channel.name))
+                if (channel == null || string.IsNullOrEmpty(channel.Name))
                 {
-                    Debug.LogWarning($"[MLin Audio] Duplicate volume channel '{channel.name}' in {settings.name}, ignoring the second one.");
                     continue;
                 }
 
-                channels.Add(channel.name, channel);
+                if (channels.ContainsKey(channel.Name))
+                {
+                    Debug.LogWarning($"[MLin Audio] Duplicate volume channel '{channel.Name}' in {settings.name}, ignoring the second one.");
+                    continue;
+                }
+
+                channels.Add(channel.Name, channel);
             }
 
             SetStorage(storage);
         }
 
+        public IVolumeStorage Storage => storage;
         public IEnumerable<string> ChannelNames => channels.Keys;
 
-        public bool HasChannel(string channel) => channel != null && channels.ContainsKey(channel);
+        public bool HasChannel(string channel)
+        {
+            return channel != null && channels.ContainsKey(channel);
+        }
 
         /// <summary>Replaces the storage and reloads every channel from it.</summary>
         public void SetStorage(IVolumeStorage newStorage)
@@ -50,17 +54,19 @@ namespace MLin.Audio
 
             foreach (VolumeChannel channel in channels.Values)
             {
-                float volume = storage.TryLoad(channel.name, out float stored) ? stored : channel.defaultVolume;
-                volumes[channel.name] = Mathf.Clamp01(volume);
+                float volume = storage.TryLoad(channel.Name, out float stored) ? stored : channel.DefaultVolume;
+                volumes[channel.Name] = Mathf.Clamp01(volume);
             }
         }
 
         public float Get(string channel)
         {
             if (channel != null && volumes.TryGetValue(channel, out float volume))
+            {
                 return volume;
+            }
 
-            WarnOnce($"Unknown volume channel '{channel}'. Add it to the Volume Channels list in {settings.name}.");
+            WarnUnknownChannel(channel);
             return 1f;
         }
 
@@ -68,20 +74,22 @@ namespace MLin.Audio
         {
             if (!HasChannel(channel))
             {
-                WarnOnce($"Unknown volume channel '{channel}'. Add it to the Volume Channels list in {settings.name}.");
+                WarnUnknownChannel(channel);
                 return;
             }
 
             volume = Mathf.Clamp01(volume);
             volumes[channel] = volume;
-            storage.Store(channels[channel].name, volume);
+            storage.Store(channels[channel].Name, volume);
             Apply(channels[channel], volume);
         }
 
         public void ApplyAll()
         {
             foreach (VolumeChannel channel in channels.Values)
-                Apply(channel, volumes[channel.name]);
+            {
+                Apply(channel, volumes[channel.Name]);
+            }
         }
 
         public void Flush()
@@ -97,14 +105,23 @@ namespace MLin.Audio
                 return;
             }
 
-            if (string.IsNullOrEmpty(channel.exposedParameter) || !settings.Mixer.SetFloat(channel.exposedParameter, AudioMath.LinearToDecibels(volume)))
-                WarnOnce($"Volume channel '{channel.name}': exposed parameter '{channel.exposedParameter}' not found on mixer '{settings.Mixer.name}'.");
+            if (string.IsNullOrEmpty(channel.ExposedParameter) || !settings.Mixer.SetFloat(channel.ExposedParameter, AudioMath.LinearToDecibels(volume)))
+            {
+                WarnOnce($"Volume channel '{channel.Name}': exposed parameter '{channel.ExposedParameter}' not found on mixer '{settings.Mixer.name}'.");
+            }
+        }
+
+        private void WarnUnknownChannel(string channel)
+        {
+            WarnOnce($"Unknown volume channel '{channel}'. Add it to the Volume Channels list in {settings.name}.");
         }
 
         private void WarnOnce(string message)
         {
             if (loggedWarnings.Add(message))
+            {
                 Debug.LogWarning("[MLin Audio] " + message);
+            }
         }
     }
 }

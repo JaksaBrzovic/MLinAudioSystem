@@ -10,9 +10,6 @@ namespace MLin.Audio
     {
         public static readonly SoundHandle Invalid = default;
 
-        internal readonly int VoiceIndex;
-        internal readonly int Id;
-
         internal SoundHandle(int voiceIndex, int id)
         {
             VoiceIndex = voiceIndex;
@@ -25,16 +22,48 @@ namespace MLin.Audio
         /// <summary>True until the sound finishes or is stopped (including while paused or fading out).</summary>
         public bool IsPlaying => AudioSystem.IsPlaying(this);
 
-        public void Stop(float fadeOut = 0f) => AudioSystem.Stop(this, fadeOut);
+        internal int VoiceIndex { get; }
+        internal int Id { get; }
+
+        public static bool operator ==(SoundHandle a, SoundHandle b)
+        {
+            return a.Equals(b);
+        }
+
+        public static bool operator !=(SoundHandle a, SoundHandle b)
+        {
+            return !a.Equals(b);
+        }
+
+        public void Stop(float fadeOut = 0f)
+        {
+            AudioSystem.Stop(this, fadeOut);
+        }
 
         /// <summary>Multiplier on top of the definition volume, 0..1.</summary>
-        public void SetVolume(float volume) => AudioSystem.SetVolume(this, volume);
+        public void SetVolume(float volume)
+        {
+            AudioSystem.SetVolume(this, volume);
+        }
 
-        public bool Equals(SoundHandle other) => VoiceIndex == other.VoiceIndex && Id == other.Id;
-        public override bool Equals(object obj) => obj is SoundHandle other && Equals(other);
-        public override int GetHashCode() => (VoiceIndex * 397) ^ Id;
-        public static bool operator ==(SoundHandle a, SoundHandle b) => a.Equals(b);
-        public static bool operator !=(SoundHandle a, SoundHandle b) => !a.Equals(b);
-        public override string ToString() => IsValid ? $"SoundHandle(voice {VoiceIndex}, id {Id})" : "SoundHandle(Invalid)";
+        public bool Equals(SoundHandle other)
+        {
+            return VoiceIndex == other.VoiceIndex && Id == other.Id;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is SoundHandle other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return (VoiceIndex * 397) ^ Id;
+        }
+
+        public override string ToString()
+        {
+            return IsValid ? $"SoundHandle(voice {VoiceIndex}, id {Id})" : "SoundHandle(Invalid)";
+        }
     }
 }

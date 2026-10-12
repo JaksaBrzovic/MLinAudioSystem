@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dbcb04406407d63449230963b76c6add, type: 3}
+  m_Name: PlaygroundAudioSettings
+  m_EditorClassIdentifier: 
+  autoInitialize: 0
+  dontDestroyOnLoad: 1
+  mixer: {fileID: 24100000, guid: ba1a7385cb2942e492d1576a96996276, type: 2}
+  musicGroup: {fileID: 24300002, guid: ba1a7385cb2942e492d1576a96996276, type: 2}
+  sfxGroup: {fileID: 24300003, guid: ba1a7385cb2942e492d1576a96996276, type: 2}
+  volumeChannels:
+  - name: Master
+    exposedParameter: MasterVolume
+    defaultVolume: 1
+  - name: Music
+    exposedParameter: MusicVolume
+    defaultVolume: 1
+  - name: Sfx
+    exposedParameter: SfxVolume
+    defaultVolume: 1
+  - name: Ui
+    exposedParameter: UiVolume
+    defaultVolume: 1
+  - name: Dialogue
+    exposedParameter: DialogueVolume
+    defaultVolume: 1
+  - name: Ambience
+    exposedParameter: AmbienceVolume
+    defaultVolume: 1
+  saveVolumes: 1
+  playerPrefsKeyPrefix: MLin.Audio.Playground.Volume.
+  initialVoices: 16
+  maxVoices: 64
+  defaultMusicFade: 2
+  musicFadeCurve: 1
+  defaultPauseFade: 0.3
+  voiceStealFade: 0.05
+  duckAttack: 0.1
+  duckRelease: 0.5
+  duckingRules:
+  - trigger: {fileID: 24300005, guid: ba1a7385cb2942e492d1576a96996276, type: 2}
+    target: {fileID: 24300002, guid: ba1a7385cb2942e492d1576a96996276, type: 2}
+    duckDecibels: -10
+    attack: 0.15
+    release: 0.8
+  - trigger: {fileID: 24300005, guid: ba1a7385cb2942e492d1576a96996276, type: 2}
+    target: {fileID: 24300006, guid: ba1a7385cb2942e492d1576a96996276, type: 2}
+    duckDecibels: -8
+    attack: 0.15
+    release: 0.8
+  defaultSnapshot: {fileID: 24500001, guid: ba1a7385cb2942e492d1576a96996276, type: 2}
+  defaultSnapshotTransition: 0.5
+  muteWhenUnfocused: 1
+  muteWhenUnfocusedInEditor: 1
+  focusFadeIn: 0.3
+  stopSoundsOnSceneChange: 0
+  sceneChangeStopFade: 0.1

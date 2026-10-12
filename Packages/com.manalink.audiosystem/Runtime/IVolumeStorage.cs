@@ -9,7 +9,9 @@ namespace MLin.Audio
     public interface IVolumeStorage
     {
         bool TryLoad(string channel, out float volume);
+
         void Store(string channel, float volume);
+
         /// <summary>Called on application pause/quit and from AudioSystem.SaveVolumes.</summary>
         void Flush();
     }
@@ -56,7 +58,12 @@ namespace MLin.Audio
             return false;
         }
 
-        public void Store(string channel, float volume) { }
-        public void Flush() { }
+        public void Store(string channel, float volume)
+        {
+        }
+
+        public void Flush()
+        {
+        }
     }
 }

@@ -6,16 +6,6 @@ namespace MLin.Audio.Editor.Tests
 {
     public class VolumeControllerTests
     {
-        private sealed class FakeStorage : IVolumeStorage
-        {
-            public readonly Dictionary<string, float> Values = new Dictionary<string, float>();
-            public int FlushCount;
-
-            public bool TryLoad(string channel, out float volume) => Values.TryGetValue(channel, out volume);
-            public void Store(string channel, float volume) => Values[channel] = volume;
-            public void Flush() => FlushCount++;
-        }
-
         private AudioSystemSettings settings;
 
         [SetUp]
@@ -89,6 +79,27 @@ namespace MLin.Audio.Editor.Tests
             controller.SetStorage(other);
 
             Assert.AreEqual(0.3f, controller.Get("Master"));
+        }
+
+        private sealed class FakeStorage : IVolumeStorage
+        {
+            public Dictionary<string, float> Values { get; } = new Dictionary<string, float>();
+            public int FlushCount { get; private set; }
+
+            public bool TryLoad(string channel, out float volume)
+            {
+                return Values.TryGetValue(channel, out volume);
+            }
+
+            public void Store(string channel, float volume)
+            {
+                Values[channel] = volume;
+            }
+
+            public void Flush()
+            {
+                FlushCount++;
+            }
         }
     }
 }

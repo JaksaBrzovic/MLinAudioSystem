@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 622f5f40e3247fa4f9d20a3de6fe13b2, type: 3}
+  m_Name: Click
+  m_EditorClassIdentifier: 
+  clips:
+  - {fileID: 8300000, guid: d5f198c76c93fc74ca92f1315dfa2682, type: 3}
+  - {fileID: 8300000, guid: f644575440514094c8b19718d9abdaec, type: 3}
+  - {fileID: 8300000, guid: c28465c517b33da4f81fcd5447696b82, type: 3}
+  - {fileID: 8300000, guid: ff8ec44a23b2a004597ee3852c7bffee, type: 3}
+  - {fileID: 8300000, guid: ed9a29f0f2a9a1f4a802a0d36f700b17, type: 3}
+  selectionMode: 1
+  introClip: {fileID: 0}
+  outputGroup: {fileID: 24300004, guid: ba1a7385cb2942e492d1576a96996276, type: 2}
+  volume: 1
+  volumeVariation: 0
+  pitch: 1
+  pitchVariation: 0.05
+  loop: 0
+  priority: 128
+  cooldown: 0.03
+  maxInstances: 0
+  instanceLimitMode: 0
+  ignorePause: 0
+  duckMusic: 0
+  resumeMusicPosition: 0
+  bpm: 0
+  beatsPerBar: 4
+  spatialBlend: 0
+  minDistance: 1
+  maxDistance: 50
+  rolloffMode: 0
+  dopplerLevel: 0

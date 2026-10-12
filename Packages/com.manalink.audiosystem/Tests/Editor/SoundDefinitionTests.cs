@@ -22,7 +22,9 @@ namespace MLin.Audio.Editor.Tests
         public void TearDown()
         {
             foreach (AudioClip clip in clips)
+            {
                 Object.DestroyImmediate(clip);
+            }
         }
 
         [Test]
@@ -49,7 +51,9 @@ namespace MLin.Audio.Editor.Tests
             definition.SelectionMode = ClipSelectionMode.Sequential;
 
             for (int i = 0; i < 7; i++)
+            {
                 Assert.AreSame(clips[i % clips.Length], definition.PickClip());
+            }
 
             Object.DestroyImmediate(definition);
         }
@@ -60,7 +64,9 @@ namespace MLin.Audio.Editor.Tests
             SoundDefinition definition = SoundDefinition.Create(null, clips[1], null);
 
             for (int i = 0; i < 20; i++)
+            {
                 Assert.AreSame(clips[1], definition.PickClip());
+            }
 
             Object.DestroyImmediate(definition);
         }
@@ -72,6 +78,23 @@ namespace MLin.Audio.Editor.Tests
 
             Assert.IsFalse(definition.HasClips);
             Assert.IsNull(definition.PickClip());
+
+            Object.DestroyImmediate(definition);
+        }
+
+        [Test]
+        public void SyncInterval_UsesTempoAndBarLength()
+        {
+            SoundDefinition definition = SoundDefinition.Create(clips);
+            definition.Bpm = 120f;
+            definition.BeatsPerBar = 3;
+
+            Assert.AreEqual(0f, definition.GetSyncInterval(MusicSync.Immediate));
+            Assert.AreEqual(0.5f, definition.GetSyncInterval(MusicSync.NextBeat), 0.0001f);
+            Assert.AreEqual(1.5f, definition.GetSyncInterval(MusicSync.NextBar), 0.0001f);
+
+            definition.Bpm = 0f;
+            Assert.AreEqual(0f, definition.GetSyncInterval(MusicSync.NextBar), "no tempo means no sync");
 
             Object.DestroyImmediate(definition);
         }

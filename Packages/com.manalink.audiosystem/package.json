@@ -19,7 +19,7 @@
   "samples": [
     {
       "displayName": "Demo",
-      "description": "Demo scene with procedurally generated sounds, an audio mixer with exposed volume parameters and an on-screen test panel.",
+      "description": "Demo scene with procedurally generated sounds, an audio mixer with exposed volume parameters and a uGUI test panel. Requires uGUI and TextMeshPro.",
       "path": "Samples~/Demo"
     }
   ]

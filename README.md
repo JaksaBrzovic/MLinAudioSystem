@@ -10,6 +10,8 @@ Development project for the **MLin Audio System** Unity package (`com.manalink.a
 - Open this folder in Unity 2022.3. The package is embedded, so edits go straight to the package.
 - Tests: Window > General > Test Runner (EditMode + PlayMode), or from the command line:
   `Unity.exe -batchmode -projectPath . -runTests -testPlatform PlayMode -testResults results.xml`
+- Audio Playground: `Assets/AudioPlayground/AudioPlayground.unity` is a test bench with real (CC0) music and sounds
+  for crossfades, intro/loop, beat sync, ducking, snapshots, pause and focus. See its [README](Assets/AudioPlayground/README.md).
 - Demo: import it from Package Manager > MLin Audio System > Samples.
   `Samples~` is hidden from Unity, so to change the demo copy it into `Assets`, edit it, and copy it back with its `.meta` files.
 

@@ -14,11 +14,21 @@ namespace MLin.Audio.Editor
             DrawDefaultInspector();
 
             if (targets.Length > 1)
+            {
                 return;
+            }
 
             SoundDefinition definition = (SoundDefinition)target;
             DrawValidation(definition);
             DrawPreview(definition);
+        }
+
+        private void OnDisable()
+        {
+            if (previewSource != null)
+            {
+                DestroyImmediate(previewSource.gameObject);
+            }
         }
 
         private static void DrawValidation(SoundDefinition definition)
@@ -39,7 +49,14 @@ namespace MLin.Audio.Editor
             }
 
             if (definition.Loop && definition.MaxInstances == 0 && definition.Cooldown <= 0f)
+            {
                 EditorGUILayout.HelpBox("Looping sound without Max Instances: every Play starts another loop. Keep the handle and Stop it, or set Max Instances to 1.", MessageType.Info);
+            }
+
+            if (definition.IntroClip != null && definition.IntroClip.loadType == AudioClipLoadType.Streaming)
+            {
+                EditorGUILayout.HelpBox("The intro clip is set to Streaming. The join to the main clip is most reliable with Compressed In Memory or Decompress On Load (with Preload Audio Data).", MessageType.Info);
+            }
         }
 
         private void DrawPreview(SoundDefinition definition)
@@ -50,11 +67,15 @@ namespace MLin.Audio.Editor
                 using (new EditorGUI.DisabledScope(!definition.HasClips))
                 {
                     if (GUILayout.Button("▶ Preview"))
+                    {
                         PlayPreview(definition);
+                    }
                 }
 
                 if (GUILayout.Button("■ Stop"))
+                {
                     StopPreview();
+                }
             }
         }
 
@@ -79,13 +100,9 @@ namespace MLin.Audio.Editor
         private void StopPreview()
         {
             if (previewSource != null)
+            {
                 previewSource.Stop();
-        }
-
-        private void OnDisable()
-        {
-            if (previewSource != null)
-                DestroyImmediate(previewSource.gameObject);
+            }
         }
     }
 }

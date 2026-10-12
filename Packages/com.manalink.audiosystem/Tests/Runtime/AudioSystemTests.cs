@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -26,36 +27,18 @@ namespace MLin.Audio.Tests
             AudioSystem.Shutdown();
             AudioSystem.SetVolumeStorage(null);
             AudioListener.pause = false;
+            AudioListener.volume = 1f;
 
             foreach (Object createdObject in createdObjects)
             {
                 if (createdObject != null)
+                {
                     Object.Destroy(createdObject);
+                }
             }
 
             createdObjects.Clear();
         }
-
-        #region HELPERS
-        private T Track<T>(T createdObject) where T : Object
-        {
-            createdObjects.Add(createdObject);
-            return createdObject;
-        }
-
-        private SoundDefinition CreateSound(float seconds = 0.1f, bool loop = false)
-        {
-            AudioClip clip = Track(AudioClip.Create("test", Mathf.Max(1, (int)(44100 * seconds)), 1, 44100, false));
-            SoundDefinition sound = Track(SoundDefinition.Create(clip));
-            sound.Loop = loop;
-            return sound;
-        }
-
-        private void Initialize()
-        {
-            AudioSystem.Initialize(settings);
-        }
-        #endregion
 
         [UnityTest]
         public IEnumerator Play_ReturnsValidHandle_AndFinishesAfterClipLength()
@@ -242,6 +225,168 @@ namespace MLin.Audio.Tests
             Assert.IsTrue(b.IsPlaying);
         }
 
+        [UnityTest]
+        public IEnumerator Music_ReturningDuringFadeOut_FadesSameVoiceBackIn()
+        {
+            Initialize();
+            SoundDefinition worldMap = CreateSound(5f, loop: true);
+            SoundDefinition town = CreateSound(5f, loop: true);
+
+            SoundHandle first = AudioSystem.PlayMusic(worldMap, 0f);
+            SoundHandle townHandle = AudioSystem.PlayMusic(town, 1f);
+            yield return new WaitForSecondsRealtime(0.2f);
+            SoundHandle back = AudioSystem.PlayMusic(worldMap, 0.3f);
+
+            Assert.AreEqual(first, back, "the fading out voice is reused");
+            Assert.AreEqual(2, AudioSystem.Host.ActiveVoiceCount);
+
+            yield return new WaitForSecondsRealtime(0.6f);
+
+            Assert.IsTrue(back.IsPlaying);
+            Assert.IsFalse(townHandle.IsPlaying);
+            Assert.AreSame(worldMap, AudioSystem.CurrentMusic);
+        }
+
+        [UnityTest]
+        public IEnumerator Music_WithResumePosition_ContinuesWhereItStopped()
+        {
+            Initialize();
+            SoundDefinition worldMap = CreateSound(5f, loop: true);
+            worldMap.ResumeMusicPosition = true;
+            SoundDefinition town = CreateSound(5f, loop: true);
+
+            SoundHandle first = AudioSystem.PlayMusic(worldMap, 0f);
+            yield return new WaitForSecondsRealtime(0.5f);
+            int sampleBeforeSwitch = AudioSystem.Host.GetPlaybackSample(first);
+            AudioSystem.PlayMusic(town, 0f);
+            yield return null;
+
+            SoundHandle resumed = AudioSystem.PlayMusic(worldMap, 0f);
+
+            Assert.That(sampleBeforeSwitch, Is.GreaterThan(0), "playback advanced before the switch");
+            // the position is recorded once per frame, so allow up to one frame (~0.1 s) of difference
+            Assert.That(AudioSystem.Host.GetPlaybackSample(resumed), Is.InRange(sampleBeforeSwitch - 4410, sampleBeforeSwitch + 4410));
+        }
+
+        [UnityTest]
+        public IEnumerator Music_WithoutResumePosition_StartsFromBeginning()
+        {
+            Initialize();
+            SoundDefinition worldMap = CreateSound(5f, loop: true);
+            SoundDefinition town = CreateSound(5f, loop: true);
+
+            AudioSystem.PlayMusic(worldMap, 0f);
+            yield return new WaitForSecondsRealtime(0.5f);
+            AudioSystem.PlayMusic(town, 0f);
+            yield return null;
+
+            SoundHandle restarted = AudioSystem.PlayMusic(worldMap, 0f);
+
+            Assert.That(AudioSystem.Host.GetPlaybackSample(restarted), Is.LessThan(44100 * 0.1f));
+        }
+
+        [UnityTest]
+        public IEnumerator IntroClip_PlaysOnceThenMainClipLoops()
+        {
+            Initialize();
+            AudioClip intro = Track(AudioClip.Create("intro", (int)(44100 * 0.3f), 1, 44100, false));
+            SoundDefinition music = CreateSound(5f, loop: true);
+            music.IntroClip = intro;
+
+            SoundHandle handle = AudioSystem.PlayMusic(music, 0f);
+            yield return null;
+            Assert.AreSame(intro, AudioSystem.Host.GetPlayingClip(handle));
+
+            yield return new WaitForSecondsRealtime(0.8f);
+            Assert.AreSame(music.Clips[0], AudioSystem.Host.GetPlayingClip(handle));
+            Assert.IsTrue(handle.IsPlaying);
+        }
+
+        [UnityTest]
+        public IEnumerator IntroClip_NonLoopingSoundEndsAfterIntroAndMainClip()
+        {
+            Initialize();
+            SoundDefinition sound = CreateSound(0.3f);
+            sound.IntroClip = Track(AudioClip.Create("intro", (int)(44100 * 0.3f), 1, 44100, false));
+
+            SoundHandle handle = AudioSystem.Play(sound);
+            yield return new WaitForSecondsRealtime(0.4f);
+            Assert.IsTrue(handle.IsPlaying, "intro is done, main clip still playing");
+
+            yield return new WaitForSecondsRealtime(0.8f);
+            Assert.IsFalse(handle.IsPlaying);
+        }
+
+        [UnityTest]
+        public IEnumerator PauseDuringIntro_MainClipStillFollows()
+        {
+            Initialize();
+            SoundDefinition music = CreateSound(5f, loop: true);
+            music.IntroClip = Track(AudioClip.Create("intro", (int)(44100 * 0.4f), 1, 44100, false));
+
+            SoundHandle handle = AudioSystem.PlayMusic(music, 0f);
+            yield return new WaitForSecondsRealtime(0.1f);
+            AudioSystem.Pause(0f);
+            yield return new WaitForSecondsRealtime(0.6f);
+            Assert.AreSame(music.IntroClip, AudioSystem.Host.GetPlayingClip(handle), "the intro does not advance while paused");
+
+            AudioSystem.Resume(0f);
+            yield return new WaitForSecondsRealtime(0.8f);
+            Assert.AreSame(music.Clips[0], AudioSystem.Host.GetPlayingClip(handle));
+            Assert.IsTrue(handle.IsPlaying);
+        }
+
+        [UnityTest]
+        public IEnumerator SyncedMusicSwitch_WaitsForNextBeat()
+        {
+            Initialize();
+            SoundDefinition first = CreateSound(10f, loop: true);
+            first.Bpm = 60f;
+            SoundDefinition second = CreateSound(10f, loop: true);
+
+            SoundHandle firstHandle = AudioSystem.PlayMusic(first, 0f);
+            yield return new WaitForSecondsRealtime(0.2f);
+            SoundHandle secondHandle = AudioSystem.PlayMusic(second, 0f, sync: MusicSync.NextBeat);
+
+            yield return new WaitForSecondsRealtime(0.2f);
+            Assert.IsTrue(firstHandle.IsPlaying, "the old track plays until the beat");
+            Assert.AreEqual(0, AudioSystem.Host.GetPlaybackSample(secondHandle), "the new track has not started yet");
+            Assert.AreSame(second, AudioSystem.CurrentMusic);
+
+            yield return new WaitForSecondsRealtime(1f);
+            Assert.IsFalse(firstHandle.IsPlaying);
+            Assert.Greater(AudioSystem.Host.GetPlaybackSample(secondHandle), 0);
+        }
+
+        [UnityTest]
+        public IEnumerator FocusLoss_MutesAndFocusReturnFadesBackIn()
+        {
+            settings.MuteWhenUnfocusedInEditor = true;
+            settings.FocusFadeIn = 0.2f;
+            Initialize();
+
+            AudioSystem.Host.SendMessage("OnApplicationFocus", false);
+            Assert.AreEqual(0f, AudioListener.volume);
+            yield return null;
+            Assert.AreEqual(0f, AudioListener.volume, "stays muted while unfocused");
+
+            AudioSystem.Host.SendMessage("OnApplicationFocus", true);
+            yield return new WaitForSecondsRealtime(0.4f);
+            Assert.AreEqual(1f, AudioListener.volume);
+        }
+
+        [Test]
+        public void FocusLoss_WithMuteWhenUnfocusedOff_KeepsVolume()
+        {
+            settings.MuteWhenUnfocusedInEditor = true;
+            Initialize();
+            AudioSystem.MuteWhenUnfocused = false;
+
+            AudioSystem.Host.SendMessage("OnApplicationFocus", false);
+
+            Assert.AreEqual(1f, AudioListener.volume);
+        }
+
         [Test]
         public void StopMusic_ClearsCurrentMusic()
         {
@@ -358,10 +503,10 @@ namespace MLin.Audio.Tests
 
             AudioSystem.Play(jingle);
             yield return null;
-            Assert.AreEqual(0.25f, AudioSystem.Host.DuckGain, 0.001f);
+            Assert.AreEqual(0.25f, AudioSystem.Host.MusicDuckGain, 0.001f);
 
             yield return new WaitForSecondsRealtime(0.6f);
-            Assert.AreEqual(1f, AudioSystem.Host.DuckGain, 0.001f);
+            Assert.AreEqual(1f, AudioSystem.Host.MusicDuckGain, 0.001f);
         }
 
         [UnityTest]
@@ -370,7 +515,7 @@ namespace MLin.Audio.Tests
             Initialize();
             AudioSystemHost original = AudioSystem.Host;
 
-            LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex("Another AudioSystemHost is already active"));
+            LogAssert.Expect(LogType.Warning, new Regex("Another AudioSystemHost is already active"));
             GameObject duplicate = new GameObject("duplicate", typeof(AudioSystemHost));
             yield return null;
 
@@ -403,13 +548,44 @@ namespace MLin.Audio.Tests
             Assert.IsFalse(AudioSystem.IsInitialized);
         }
 
+        #region HELPERS
+        private T Track<T>(T createdObject) where T : Object
+        {
+            createdObjects.Add(createdObject);
+            return createdObject;
+        }
+
+        private SoundDefinition CreateSound(float seconds = 0.1f, bool loop = false)
+        {
+            AudioClip clip = Track(AudioClip.Create("test", Mathf.Max(1, (int)(44100 * seconds)), 1, 44100, false));
+            SoundDefinition sound = Track(SoundDefinition.Create(clip));
+            sound.Loop = loop;
+            return sound;
+        }
+
+        private void Initialize()
+        {
+            AudioSystem.Initialize(settings);
+        }
+        #endregion
+
         private sealed class RecordingStorage : IVolumeStorage
         {
-            public readonly Dictionary<string, float> Values = new Dictionary<string, float>();
+            public Dictionary<string, float> Values { get; } = new Dictionary<string, float>();
 
-            public bool TryLoad(string channel, out float volume) => Values.TryGetValue(channel, out volume);
-            public void Store(string channel, float volume) => Values[channel] = volume;
-            public void Flush() { }
+            public bool TryLoad(string channel, out float volume)
+            {
+                return Values.TryGetValue(channel, out volume);
+            }
+
+            public void Store(string channel, float volume)
+            {
+                Values[channel] = volume;
+            }
+
+            public void Flush()
+            {
+            }
         }
     }
 }

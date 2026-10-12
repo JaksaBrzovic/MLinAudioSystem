@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 622f5f40e3247fa4f9d20a3de6fe13b2, type: 3}
+  m_Name: SwordHit
+  m_EditorClassIdentifier: 
+  clips:
+  - {fileID: 8300000, guid: 6c84be655cc5297449dce553bc59d3f6, type: 3}
+  - {fileID: 8300000, guid: 353c32ee140d8714f91c31cf978d8c15, type: 3}
+  - {fileID: 8300000, guid: a138d0313e811e246a5920bf1b6b3f4f, type: 3}
+  - {fileID: 8300000, guid: 02bde7732eccb834083ef0b37d12c70d, type: 3}
+  - {fileID: 8300000, guid: 2bdaf881e831ce147b4089d8807e43ff, type: 3}
+  selectionMode: 1
+  introClip: {fileID: 0}
+  outputGroup: {fileID: 24300003, guid: ba1a7385cb2942e492d1576a96996276, type: 2}
+  volume: 1
+  volumeVariation: 0
+  pitch: 1
+  pitchVariation: 0.06
+  loop: 0
+  priority: 100
+  cooldown: 0
+  maxInstances: 3
+  instanceLimitMode: 0
+  ignorePause: 0
+  duckMusic: 0
+  resumeMusicPosition: 0
+  bpm: 0
+  beatsPerBar: 4
+  spatialBlend: 0
+  minDistance: 1
+  maxDistance: 50
+  rolloffMode: 0
+  dopplerLevel: 0

@@ -6,9 +6,13 @@ Reusable audio system for Unity 2022.3+.
 - **One static API**: `AudioSystem.Play(sound)`. The system creates itself on first use.
 - **Pooled voices** with priority-based voice stealing (music is never stolen).
 - **Handles**: `SoundHandle` to stop / re-volume a specific sound. Stale handles are harmless.
-- **Music** with crossfade; requesting the track that is already playing does nothing.
+- **Music** with equal-power crossfade (no loudness dip); requesting the track that is already playing does nothing,
+  returning to a track that is still fading out fades it back in, and tracks can resume where they stopped.
 - **Pause / Resume** with fades that can be interrupted at any time without volume jumps. UI sounds can ignore pause.
-- **Ducking**: a sound can lower the music while it plays.
+- **Ducking**: a sound can lower the music while it plays, and bus rules duck whole mixer groups (dialogue over music and ambience).
+- **Snapshots** with prioritized requests for mix states (menu, underwater, low health).
+- **Intro + loop** clips joined sample-accurately, and **beat / bar synced** music switches.
+- **Mute when unfocused**, switchable from an options menu.
 - **Volume channels** on exposed AudioMixer parameters (linear 0..1 in, dB out), saved through a pluggable `IVolumeStorage` (PlayerPrefs by default, swap in console save data etc.).
 - Works with **Domain Reload disabled**, unscaled time everywhere (fades work with `Time.timeScale = 0`).
 
@@ -40,6 +44,8 @@ The repository is private, so the machine needs git access to it (Git Credential
 4. Create sounds: `Create > MLin > Audio > Sound Definition`. The inspector has a **Preview** button.
 
 The **Demo** sample (Package Manager → MLin Audio System → Samples) contains a ready mixer, settings and a test scene.
+Its UI is a uGUI prefab (`DemoUi`) with TextMeshPro text, so the project needs `com.unity.ugui` and `com.unity.textmeshpro`
+with the **TMP Essential Resources** imported (Window → TextMeshPro → Import TMP Essential Resources).
 
 ## Usage
 
@@ -72,8 +78,10 @@ public class Door : MonoBehaviour
 | Sound at a position | `AudioSystem.PlayAt(sound, position)` |
 | Sound following a transform (auto-stops when it is destroyed) | `AudioSystem.PlayAttached(sound, transform)` |
 | Stop one / all of a kind / everything | `handle.Stop(fade)`, `AudioSystem.StopAll(sound, fade)`, `AudioSystem.StopAllSounds(fade, includeMusic)` |
-| Music | `AudioSystem.PlayMusic(track, crossfade = default, restartIfPlaying = false)`, `AudioSystem.StopMusic(fade)`, `AudioSystem.CurrentMusic` |
+| Music | `AudioSystem.PlayMusic(track, crossfade = default, restartIfPlaying = false, sync = MusicSync.Immediate)`, `AudioSystem.StopMusic(fade)`, `AudioSystem.CurrentMusic` |
 | Pause menu | `AudioSystem.Pause(fade)`, `AudioSystem.Resume(fade)`, `AudioSystem.IsPaused` |
+| Mix states | `SnapshotHandle h = AudioSystem.RequestSnapshot(snapshot, priority, transition)`, `h.Release(transition)` |
+| Options menu | `AudioSystem.MuteWhenUnfocused = true / false` |
 | Settings sliders | `AudioSystem.GetChannelVolume("Music")`, `AudioSystem.SetChannelVolume("Music", 0.5f)` |
 | Custom save system | `AudioSystem.SetVolumeStorage(new MyStorage())` |
 
@@ -84,6 +92,7 @@ Fade arguments are seconds of unscaled time. For music and pause, a negative fad
 | Field | Meaning |
 |---|---|
 | Clips + Selection Mode | One or more clips; `Random`, `RandomNoRepeat` or `Sequential`. Empty slots are skipped. |
+| Intro Clip | Optional. Plays once, then the picked clip follows sample-accurately (music intro before the loop, engine start before the engine loop). |
 | Output Group | Mixer group. Empty = Music/SFX group from settings. |
 | Volume / Pitch (+ Variation) | Base values with random +/- per play. |
 | Loop | Looping sounds play until stopped. Music tracks normally loop. |
@@ -92,6 +101,8 @@ Fade arguments are seconds of unscaled time. For music and pause, a negative fad
 | Max Instances + Limit Mode | Simultaneous instances; `StopOldest` fades the oldest out, `RejectNew` ignores the request. |
 | Ignore Pause | Keeps playing while paused (pause menu UI sounds). |
 | Duck Music | 0..1 how much music is lowered while this sound plays. |
+| Resume Music Position | When played with `PlayMusic` again, continue where the track last stopped (e.g. world map music after a town). `restartIfPlaying: true` always starts from the beginning. |
+| Bpm + Beats Per Bar | Tempo of this track, used when another track is started with `MusicSync.NextBeat` / `NextBar` while it plays. |
 | 3D | Spatial blend, distances, rolloff, doppler. Used by `PlayAt` / `PlayAttached` only; `Play` is always 2D. |
 
 ### Pause
@@ -100,6 +111,51 @@ Fade arguments are seconds of unscaled time. For music and pause, a negative fad
 `Resume` can be called at any moment, including in the middle of the pause fade, and continues from the current level.
 Sounds that finished or were stopped before the pause are never restarted. If your project also sets
 `AudioListener.pause` directly, let the audio system own it instead.
+
+### Music transitions
+
+```csharp
+AudioSystem.PlayMusic(townTheme);                                  // equal-power crossfade, default length
+AudioSystem.PlayMusic(battleTheme, 0.5f, sync: MusicSync.NextBar); // waits for the next bar of the current track
+```
+
+With `NextBeat` / `NextBar` the old track keeps playing until the next beat or bar of *its* tempo (`Bpm` on the
+definition that is playing); the new track then starts sample-accurately on that beat and the crossfade begins.
+The beat grid starts at the beginning of each clip, so cut intro and loop clips on bar lines. Tracks without a tempo
+switch immediately.
+
+Returning to a track that is still fading out fades that same playback back in, and tracks with *Resume Music
+Position* continue where they stopped.
+
+### Ducking
+
+- **Duck Music** on a `SoundDefinition`: that sound lowers the music (attack/release in the settings).
+- **Ducking Rules** in the settings, for whole buses: *while any sound routed to `Dialogue` plays, lower `Music` by
+  8 dB and `Ambience` by 4 dB*. Each rule has its own attack and release; when several rules hit one group the
+  strongest wins. Groups are matched exactly, so a sound in a child group of the target needs its own rule.
+- For ducking driven by the actual signal level, the mixer's own *Duck Volume* effect with a send also works and
+  needs no code.
+
+### Snapshots
+
+Mixer snapshots change the whole mix at once (pause menu with muffled music, underwater, low health):
+
+```csharp
+SnapshotHandle underwater = AudioSystem.RequestSnapshot(underwaterSnapshot, priority: 0);
+SnapshotHandle menu = AudioSystem.RequestSnapshot(menuSnapshot, priority: 10, transition: 0.2f);
+...
+menu.Release();       // back to underwater
+underwater.Release(); // back to the default snapshot
+```
+
+Several systems can hold requests at the same time; the highest priority one is active, on equal priority the most
+recent. Set the mixer's **Update Mode** to **Unscaled Time**, otherwise transitions stop while `Time.timeScale` is 0.
+
+### Focus
+
+With **Mute When Unfocused** (settings, or `AudioSystem.MuteWhenUnfocused` from an options menu) all audio is
+silenced through `AudioListener.volume` while the application is not focused and fades back in on return. In the
+Editor this only happens with *Mute When Unfocused In Editor* on.
 
 ### Custom volume storage
 

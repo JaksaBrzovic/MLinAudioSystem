@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 622f5f40e3247fa4f9d20a3de6fe13b2, type: 3}
+  m_Name: World
+  m_EditorClassIdentifier: 
+  clips:
+  - {fileID: 8300000, guid: 6f092c281efdf32459a4ea66e6af627a, type: 3}
+  selectionMode: 1
+  introClip: {fileID: 8300000, guid: 5427cd1005839bf41a138413b98ee945, type: 3}
+  outputGroup: {fileID: 24300002, guid: ba1a7385cb2942e492d1576a96996276, type: 2}
+  volume: 0.8
+  volumeVariation: 0
+  pitch: 1
+  pitchVariation: 0
+  loop: 1
+  priority: 128
+  cooldown: 0
+  maxInstances: 0
+  instanceLimitMode: 0
+  ignorePause: 0
+  duckMusic: 0
+  resumeMusicPosition: 1
+  bpm: 140
+  beatsPerBar: 4
+  spatialBlend: 0
+  minDistance: 1
+  maxDistance: 50
+  rolloffMode: 0
+  dopplerLevel: 0
