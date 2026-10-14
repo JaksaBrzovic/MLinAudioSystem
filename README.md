@@ -1,3 +1,14 @@
+AI-Native project developed by Jaksa Brzovic
+
+<!-- usage:start -->
+Claude Code time: 0 h 42 min of work over 1 session
+
+| Claude Code usage | Input | Output | Cache write 5m | Cache write 1h | Cache read | Web searches | Web fetches |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| claude-opus-5-5 | 246 | 217,441 | 0 | 1,068,489 | 39,687,112 | 0 | 0 |
+<!-- usage-data: {"models": {"claude-opus-5-5": {"cache_read": 39687112, "cache_write_1h": 1068489, "cache_write_5m": 0, "input": 246, "output": 217441, "web_fetches": 0, "web_searches": 0}}, "seconds": 2557.179, "sessions": 1, "until": "2026-10-14T18:09:50+00:00"} -->
+<!-- usage:end -->
+
 # MLinAudioSystem
 
 Development project for the **MLin Audio System** Unity package (`com.manalink.audiosystem`).
